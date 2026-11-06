@@ -35,10 +35,9 @@ resources:
   - key: main
     path: src/frontend/index.jsx
   - key: ledger
-    # Custom UI build output (Phase 3). Until then this resource is a
-    # placeholder: `forge deploy` will fail on a missing path — either build
-    # static/ledger first or temporarily point this at the UI Kit resource.
-    # Kept explicit here so the gap is visible, not hidden.
+    # Custom UI build output (Phase 3, built 6 Nov 2026 — bundle + HTTP
+    # checks pass, NOT forge-validated yet; first `forge deploy` after
+    # login will surface corrections). See static/ledger/README.md.
     path: static/ledger/build
 app:
   # PLACEHOLDER — replaced by the real id from `forge register` / `forge create`

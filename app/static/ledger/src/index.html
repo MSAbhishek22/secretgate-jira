@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SecretGate Ledger</title>
+<style>
+  /* SecretGate ledger — cold Jira-native ADS look (design/DESIGN_CONSTITUTION.md).
+     White surfaces, Atlassian blue #0C66E4 for structure, red strictly for
+     LEAKED, amber for REVIEW, green for rotated/CLEAR. Mono = evidence. */
+  :root {
+    --blue: #0C66E4;
+    --blue-dark: #0747A6;
+    --blue-bg: #DEEBFF;
+    --red: #DE350B;
+    --red-fg: #BF2600;
+    --red-bg: #FFEBE6;
+    --amber-fg: #974F0C;
+    --amber-bg: #FFF7E6;
+    --amber-dot: #FFAB00;
+    --green-fg: #006644;
+    --green-bg: #E6FCF1;
+    --green-dot: #36B37E;
+    --text: #172B4D;
+    --text-subtle: #626F86;
+    --border: #DFE1E6;
+    --surface: #FFFFFF;
+    --page-bg: #F4F5F7;
+    --row-hover: #F4F5F7;
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page-bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  #app { max-width: 1180px; margin: 0 auto; padding: 16px; }
+  header h1 { font-size: 20px; margin: 0 0 4px; }
+  header .sub { color: var(--text-subtle); margin: 0 0 8px; }
+  .summary { margin: 0 0 16px; font-size: 13px; color: var(--text-subtle); }
+  #notice { color: var(--green-fg); font-size: 13px; margin: 0 0 12px; }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    margin-bottom: 16px;
+  }
+  .panel-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+  }
+  .panel-head h2 { font-size: 15px; margin: 0; }
+  #graphBody { padding: 0 16px 16px; }
+  #graphCanvas {
+    display: block; width: 100%; height: 320px;
+    background: #FAFBFC; border: 1px solid var(--border); border-radius: 3px;
+    margin-top: 12px; cursor: grab; touch-action: none;
+  }
+  #graphCanvas.dragging { cursor: grabbing; }
+  #graphPanel.collapsed #graphCanvas { display: none; }
+  .note { color: var(--text-subtle); font-size: 13px; }
+  .graph-list { font-size: 13px; margin: 12px 0 0; }
+  .graph-list ul { margin: 4px 0 8px; padding-left: 20px; }
+  .graph-list li { margin: 2px 0; }
+  .layout { display: grid; grid-template-columns: 220px 1fr; gap: 16px; align-items: start; }
+  .filters { padding: 16px; }
+  .filters h2 { font-size: 15px; margin: 0 0 12px; }
+  .filters label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+  .filters select, .filters input[type="text"] {
+    display: block; width: 100%; margin-top: 4px;
+    padding: 6px 8px; font: inherit; font-size: 13px;
+    border: 1px solid var(--border); border-radius: 3px; background: var(--surface); color: var(--text);
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--blue-bg); color: var(--blue-dark);
+    border-radius: 12px; padding: 2px 8px; font-size: 12px; margin: 0 0 12px;
+  }
+  .chip button { border: 0; background: none; color: inherit; cursor: pointer; font: inherit; padding: 0; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--text-subtle); font-size: 12px; font-weight: 600; white-space: nowrap; }
+  tbody tr:hover { background: var(--row-hover); }
+  tbody tr.detail:hover { background: var(--surface); }
+  .mono { font-family: var(--mono); font-size: 12px; }
+  .stamp {
+    display: inline-block; padding: 2px 8px; border-radius: 3px;
+    font-size: 12px; font-weight: 700; letter-spacing: .02em; white-space: nowrap;
+  }
+  .stamp.leaked { color: var(--red-fg); background: var(--red-bg); }
+  .stamp.review { color: var(--amber-fg); background: var(--amber-bg); }
+  .stamp.clear { color: var(--green-fg); background: var(--green-bg); }
+  .pill {
+    display: inline-block; padding: 2px 8px; border-radius: 3px;
+    font-size: 12px; white-space: nowrap;
+  }
+  .pill.open { color: var(--blue-dark); background: var(--blue-bg); }
+  .pill.rotated { color: var(--green-fg); background: var(--green-bg); }
+  .pill.false-positive { color: var(--text-subtle); background: var(--page-bg); }
+  a { color: var(--blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  button {
+    font: inherit; font-size: 13px; cursor: pointer;
+    padding: 6px 12px; border-radius: 3px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text);
+  }
+  button:hover { background: var(--row-hover); }
+  button.primary { background: var(--blue); border-color: var(--blue); color: #FFFFFF; }
+  button.primary:hover { background: var(--blue-dark); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button.linklike { border: 0; background: none; color: var(--blue); padding: 0; font-size: 12px; }
+  :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+  .receipt {
+    border: 1px solid var(--border); border-radius: 3px; padding: 12px;
+    background: #FAFBFC; display: grid; gap: 8px;
+  }
+  .receipt label { font-size: 13px; font-weight: 600; display: grid; gap: 4px; }
+  .receipt input[type="text"] {
+    padding: 6px 8px; font: inherit; font-size: 13px;
+    border: 1px solid var(--border); border-radius: 3px; background: var(--surface);
+  }
+  .receipt .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .inline-error {
+    color: var(--red-fg); background: var(--red-bg);
+    border-radius: 3px; padding: 8px 12px; margin: 0; font-size: 13px;
+  }
+  .state { padding: 32px 16px; text-align: center; color: var(--text-subtle); }
+  .state.error p { color: var(--red-fg); }
+  .spinner {
+    display: inline-block; width: 16px; height: 16px; vertical-align: -3px;
+    border: 2px solid var(--border); border-top-color: var(--blue);
+    border-radius: 50%; animation: spin .8s linear infinite; margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (max-width: 767px) {
+    .layout { grid-template-columns: 1fr; }
+    #graphCanvas { height: 260px; }
+    #app { padding: 12px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .spinner { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>SecretGate Ledger</h1>
+    <p class="sub">Redacted receipt ledger — every finding is a receipt. A LEAKED finding can only clear by rotation + a clean re-scan.</p>
+    <p id="summary" class="summary" aria-live="polite"></p>
+    <p id="notice" role="status"></p>
+  </header>
+
+  <section id="graphPanel" class="panel" aria-label="Blast-radius map">
+    <div class="panel-head">
+      <h2>Blast-radius map</h2>
+      <button id="graphToggle" type="button" aria-expanded="true">Hide map</button>
+    </div>
+    <div id="graphBody">
+      <canvas id="graphCanvas" role="img" aria-label="Force-directed graph of Jira issues and secret types. Drag to rotate; click a node to filter the table."></canvas>
+      <p id="graphNote" class="note" hidden></p>
+      <div id="graphList" class="graph-list" aria-label="Blast-radius list"></div>
+    </div>
+  </section>
+
+  <div class="layout">
+    <aside class="filters panel" aria-label="Filters">
+      <h2>Filters</h2>
+      <label>Status
+        <select id="filterStatus">
+          <option value="all">All statuses</option>
+          <option value="open">Open</option>
+          <option value="rotated">Rotated</option>
+          <option value="false-positive">False positive</option>
+        </select>
+      </label>
+      <label>Secret type
+        <select id="filterType">
+          <option value="all">All types</option>
+        </select>
+      </label>
+      <label>Project
+        <select id="filterProject">
+          <option value="all">All projects</option>
+        </select>
+      </label>
+      <p id="issueChip" class="chip" hidden></p>
+      <button id="clearFilters" type="button">Clear filters</button>
+    </aside>
+
+    <section class="table-wrap panel" aria-label="Findings">
+      <div id="loading" class="state"><span class="spinner" aria-hidden="true"></span>Loading findings…</div>
+      <div id="errorBox" class="state error" hidden>
+        <p id="errorText"></p>
+        <button id="retryBtn" type="button" class="primary">Retry</button>
+      </div>
+      <div id="emptyState" class="state" hidden>
+        <p id="emptyText"></p>
+        <button id="refreshBtn" type="button">Refresh</button>
+      </div>
+      <table id="findingsTable">
+        <thead>
+          <tr>
+            <th scope="col">Verdict</th>
+            <th scope="col">Issue</th>
+            <th scope="col">Secret type</th>
+            <th scope="col">Evidence</th>
+            <th scope="col"><button id="sortUpdated" type="button" class="linklike">Updated <span id="sortDir" aria-hidden="true">↓</span></button></th>
+            <th scope="col">Status</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="findingsBody"></tbody>
+      </table>
+    </section>
+  </div>
+</div>
+<script src="index.js"></script>
+</body>
+</html>

@@ -29,10 +29,11 @@ forge install --demo-site # install on a seeded demo Jira site (90 days)
 forge lint                # must be clean before submit
 ```
 
-Note: `static/ledger/build` (Custom UI ledger, Phase 3) does not exist yet.
-Until it is built, `forge deploy` will fail on the missing resource path —
-either build the ledger first or temporarily repoint the `ledger` resource.
-This is called out in `manifest.yml` so the gap stays visible.
+Note: `static/ledger/build` (Custom UI ledger, Phase 3) now exists — built
+6 Nov 2026 with esbuild (vanilla JS + `@forge/bridge`, no framework; see
+`static/ledger/README.md`). Bundle + HTTP checks pass, scanner tests 8/8.
+It is NOT forge-validated yet: first `forge deploy` after login will
+surface corrections.
 
 ## Structure
 

@@ -67,10 +67,12 @@ resolver.define('listFindings', async ({ payload }) => {
   const { status, projectKey } = payload || {};
   const query = storage.query().where('key', 'startsWith', 'finding:');
   const out = [];
-  for await (const { value } of query) {
+  for await (const { key, value } of query) {
     if (status && value.status !== status) continue;
     if (projectKey && value.projectKey !== projectKey) continue;
-    out.push(value);
+    // The ledger needs the storage key to call markRotated /
+    // markFalsePositive — the record itself does not carry it.
+    out.push({ ...value, storageKey: key });
   }
   out.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
   return out;
